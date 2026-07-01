@@ -1,0 +1,146 @@
+suite: test service template
+templates:
+  - service.yaml
+tests:
+  - it: should render a basic service
+    set:
+      service:
+        name: test-service
+        type: ClusterIP
+        port: 8000
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Service
+      - isAPIVersion:
+          of: v1
+
+  - it: should set correct metadata
+    set:
+      service:
+        name: my-mcp-service
+        type: ClusterIP
+        port: 8000
+    asserts:
+      - equal:
+          path: metadata.name
+          value: my-mcp-service
+      - isSubset:
+          path: metadata.labels
+          content:
+            app.kubernetes.io/name: mcp
+
+  - it: should set correct service type
+    set:
+      service:
+        name: test-service
+        type: LoadBalancer
+        port: 8000
+    asserts:
+      - equal:
+          path: spec.type
+          value: LoadBalancer
+
+  - it: should configure ClusterIP service
+    set:
+      service:
+        name: mcp-service
+        type: ClusterIP
+        port: 8000
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - equal:
+          path: spec.ports[0].port
+          value: 8000
+      - equal:
+          path: spec.ports[0].targetPort
+          value: 8000
+
+  - it: should set correct port configuration
+    set:
+      service:
+        name: test-service
+        type: ClusterIP
+        port: 9000
+      applicationPort: 9000
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - equal:
+          path: spec.ports[0].name
+          value: http
+      - equal:
+          path: spec.ports[0].port
+          value: 9000
+      - equal:
+          path: spec.ports[0].targetPort
+          value: 9000
+      - equal:
+          path: spec.ports[0].protocol
+          value: TCP
+
+  - it: should include selector labels
+    set:
+      service:
+        name: test-service
+        type: ClusterIP
+        port: 8000
+    asserts:
+      - isNotNull:
+          path: spec.selector
+      - isSubset:
+          path: spec.selector
+          content:
+            app.kubernetes.io/name: mcp
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: should always set protocol to TCP
+    set:
+      service:
+        name: test-service
+        type: ClusterIP
+        port: 8000
+    asserts:
+      - equal:
+          path: spec.ports[0].protocol
+          value: TCP
+
+  - it: should always set port name to http
+    set:
+      service:
+        name: test-service
+        type: ClusterIP
+        port: 8000
+    asserts:
+      - equal:
+          path: spec.ports[0].name
+          value: http
+
+  - it: should work with different service names
+    set:
+      service:
+        name: custom-mcp-service
+        type: ClusterIP
+        port: 8000
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-mcp-service
+
+  - it: should work with NodePort service type
+    set:
+      service:
+        name: nodeport-service
+        type: NodePort
+        port: 8000
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+      - equal:
+          path: spec.ports[0].port
+          value: 8000

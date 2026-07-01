@@ -1,0 +1,493 @@
+suite: test deployment template
+templates:
+  - deployment.yaml
+tests:
+  - it: should not render deployment when disabled
+    set:
+      deployment:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render deployment when enabled
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      service:
+        port: 8000
+      podSecurityContext: {}
+      securityContext: {}
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - isAPIVersion:
+          of: apps/v1
+
+  - it: should set correct metadata labels
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+    asserts:
+      - isSubset:
+          path: metadata.labels
+          content:
+            app.kubernetes.io/name: mcp
+
+  - it: should set correct selector labels
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+    asserts:
+      - isSubset:
+          path: spec.selector.matchLabels
+          content:
+            app.kubernetes.io/name: mcp
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: should set correct replica count
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 3
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: should configure pod annotations
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+      - equal:
+          path: spec.template.metadata.annotations["prometheus.io/port"]
+          value: "8000"
+
+  - it: should configure pod labels
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      podLabels:
+        environment: production
+        team: platform
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.environment
+          value: production
+      - equal:
+          path: spec.template.metadata.labels.team
+          value: platform
+
+  - it: should configure image pull secrets
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      imagePullSecrets:
+        - name: regcred
+        - name: ghcr-secret
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.imagePullSecrets
+          count: 2
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: regcred
+      - equal:
+          path: spec.template.spec.imagePullSecrets[1].name
+          value: ghcr-secret
+
+  - it: should configure container image
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: Always
+      podSecurityContext: {}
+      securityContext: {}
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: mcp
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "ghcr.io/itential/itential-mcp:v0.12.1"
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+
+  - it: should configure container port
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      applicationPort: 8000
+      podSecurityContext: {}
+      securityContext: {}
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].name
+          value: http
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8000
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].protocol
+          value: TCP
+
+  - it: should set MCP server environment variables
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      mcp:
+        server:
+          transport: sse
+          host: "0.0.0.0"
+          port: 8000
+          path: "/mcp"
+        platform:
+          host: "iap.example.com"
+          port: 3000
+          disableTls: false
+          timeout: 30
+          includeTags: ""
+          excludeTags: ""
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ITENTIAL_MCP_SERVER_TRANSPORT
+            value: "sse"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ITENTIAL_MCP_SERVER_HOST
+            value: "0.0.0.0"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ITENTIAL_MCP_PLATFORM_HOST
+            value: "iap.example.com"
+
+  - it: should configure startup probe when enabled
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      startupProbe:
+        enabled: true
+        path: "/mcp"
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 18
+        successThreshold: 1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.path
+          value: "/mcp"
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.httpGet.port
+          value: 8000
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.initialDelaySeconds
+          value: 10
+
+  - it: should configure liveness probe when enabled
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      livenessProbe:
+        enabled: true
+        path: "/mcp"
+        periodSeconds: 30
+        timeoutSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: "/mcp"
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: 8000
+
+  - it: should configure readiness probe when enabled
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      readinessProbe:
+        enabled: true
+        path: "/mcp"
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+        successThreshold: 1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: "/mcp"
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+          value: 8000
+
+  - it: should not include probes when not configured
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+    asserts:
+      - isNull:
+          path: spec.template.spec.containers[0].startupProbe
+      - isNull:
+          path: spec.template.spec.containers[0].livenessProbe
+      - isNull:
+          path: spec.template.spec.containers[0].readinessProbe
+
+  - it: should configure resources when enabled
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 250m
+          memory: 128Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 500m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 256Mi
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 250m
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 128Mi
+
+  - it: should configure node selector
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        zone: us-east-1a
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector["kubernetes.io/arch"]
+          value: amd64
+      - equal:
+          path: spec.template.spec.nodeSelector["zone"]
+          value: us-east-1a
+
+  - it: should configure tolerations
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "mcp"
+          effect: "NoSchedule"
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.tolerations
+          count: 1
+      - equal:
+          path: spec.template.spec.tolerations[0].key
+          value: "dedicated"
+      - equal:
+          path: spec.template.spec.tolerations[0].value
+          value: "mcp"
+      - equal:
+          path: spec.template.spec.tolerations[0].effect
+          value: "NoSchedule"
+
+  - it: should configure affinity
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+    asserts:
+      - isNotNull:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: should configure additional volume mounts
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      volumeMounts:
+        - name: custom-ca
+          mountPath: /etc/ssl/certs/custom-ca.crt
+          readOnly: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: custom-ca
+            mountPath: /etc/ssl/certs/custom-ca.crt
+            readOnly: true
+
+  - it: should configure additional volumes
+    set:
+      deployment:
+        enabled: true
+      replicaCount: 1
+      image:
+        repository: ghcr.io/itential/itential-mcp
+        tag: "v0.12.1"
+        pullPolicy: IfNotPresent
+      podSecurityContext: {}
+      securityContext: {}
+      volumes:
+        - name: custom-ca
+          secret:
+            secretName: my-ca-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: custom-ca
+            secret:
+              secretName: my-ca-secret

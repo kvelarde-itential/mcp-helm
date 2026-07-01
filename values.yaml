@@ -1,0 +1,164 @@
+# Copyright (c) 2026, Itential, Inc
+# GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+---
+# Default values for mcp.
+
+replicaCount: 1
+
+# applicationPort The port the MCP server container listens on inside the pod.
+# Must match mcp.server.port.
+applicationPort: 8000
+
+# image The Itential MCP image to use, its version, and its location
+image:
+  repository: ghcr.io/itential/itential-mcp
+  pullPolicy: IfNotPresent
+  tag: ""
+
+# imagePullSecrets The secrets object used to pull the image from the repo
+imagePullSecrets: []
+
+# serviceAccount with IRSA
+serviceAccount:
+  name: ""
+
+deployment:
+  enabled: true
+
+podAnnotations: {}
+podLabels: {}
+securityContext: {}
+podSecurityContext: {}
+
+# service The Kubernetes service object for this application
+service:
+  # type The service type
+  type: "ClusterIP"
+  # name The name of this Kubernetes service object
+  name: "mcp-service"
+  # port The port that this service object is listening on
+  port: 8000
+
+# ingress The Kubernetes ingress object for this application.
+ingress:
+  # enabled The ingress object can be disabled and will not be created with this set to false
+  enabled: false
+  # name The name of this Kubernetes ingress object
+  name: "mcp-ingress"
+  # className The ingress controller class name
+  className: ""
+  # annotations The annotations for this ingress object. These are passed into the template
+  # as is and will render the contents as you see here.
+  annotations:
+  # hosts The list of hosts for this ingress and their associated properties
+  hosts:
+    - host: "mcp.example.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+  tls: []
+
+resourcesEnabled: true
+resources:
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+  requests:
+    cpu: "250m"
+    memory: "128Mi"
+
+# The liveness probe used to determine if the container is alive. If the liveness probe fails,
+# the kubelet kills the container, and the container is subjected to its restart policy. If a
+# container does not provide a liveness probe, the default state is Success. These are suggested
+# values.
+livenessProbe:
+  enabled: false
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+  path: "/mcp"
+
+# The readiness probe used to determine if the container is ready to accept requests. If the
+# readiness probe fails, the endpoints controller removes the pod's IP address from the
+# endpoints of all services that match the pod. The default state of readiness before the
+# initial delay is failure. If a container does not provide a readiness probe, the default
+# state is success. These are suggested values.
+readinessProbe:
+  enabled: false
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+  path: "/mcp"
+
+# The startup probe used to allow some time for the application to start up. The application
+# will have a maximum of 3 minutes (18 * 10 = 180s) to finish its startup. Once the startup
+# probe has succeeded once, the liveness probe takes over. These are suggested values.
+startupProbe:
+  enabled: false
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 18
+  successThreshold: 1
+  path: "/mcp"
+
+# mcp Server and platform connection configuration. These values are rendered into
+# environment variables that the MCP server reads at startup.
+mcp:
+  server:
+    # transport Must be "sse" or "http" for Kubernetes deployments. Do not use "stdio".
+    transport: "sse"
+    # host The address the MCP server binds to inside the container.
+    host: "0.0.0.0"
+    # port The port the MCP server listens on. Must match applicationPort.
+    port: 8000
+    # path The HTTP path the MCP server mounts on.
+    path: "/mcp"
+  platform:
+    # host The hostname or IP address of the Itential Platform instance.
+    host: ""
+    # port The port of the Itential Platform instance. Set to 0 for auto-detection.
+    port: 3000
+    # disableTls Set to true to disable TLS entirely (connects via HTTP). Only use if IAP is not
+    # running TLS. For self-signed or internal CA certs, use disableVerify instead.
+    disableTls: false
+    # disableVerify Set to true to skip TLS certificate verification when connecting to Itential
+    # Platform. Use this when IAP uses a self-signed or internal CA certificate.
+    disableVerify: false
+    # timeout Connection timeout in seconds.
+    timeout: 30
+    # includeTags Comma-separated list of tool tag groups to expose. Leave empty to expose all.
+    includeTags: ""
+    # excludeTags Comma-separated list of tool tag groups to hide.
+    excludeTags: ""
+
+# credentials Platform authentication credentials. Sensitive values are stored in a Kubernetes
+# Secret. Supports basic auth (user/password) or OAuth 2.0 (clientId/clientSecret).
+credentials:
+  # secretName If set, an existing Secret with this name is used and no new Secret is created.
+  # The existing Secret must contain the relevant ITENTIAL_MCP_PLATFORM_* keys.
+  secretName: ""
+  # The following values are only used when secretName is empty.
+  platformUser: ""
+  platformPassword: ""
+  platformClientId: ""
+  platformClientSecret: ""
+
+# volumes Additional volumes on the output Deployment definition.
+volumes: []
+
+# volumeMounts Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+
+nodeSelector:
+  itential.io/app: "mcp"
+
+tolerations:
+  - effect: "NoSchedule"
+    key: "itential.io/role"
+    operator: "Equal"
+    value: "mcp"
+
+affinity: {}

@@ -1,0 +1,19 @@
+# Copyright (c) 2026, Itential, Inc
+# GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+---
+apiVersion: v2
+name: mcp
+description: A Helm chart for Kubernetes that deploys the Itential MCP server, which exposes Itential Platform capabilities as Model Context Protocol tools.
+icon: https://www.itential.com/wp-content/uploads/2023/12/Product-Icon_IAP.png
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates, including the app version.
+# Versions are expected to follow Semantic Versioning (https://semver.org/)
+version: 1.0.0
+
+# This is the version number of the application being deployed. This version number should be
+# incremented each time you make changes to the application. Versions are not expected to
+# follow Semantic Versioning. They should reflect the version the application is using.
+# It is recommended to use it with quotes.
+appVersion: "v0.12.1"

@@ -1,0 +1,129 @@
+{{- if .Values.deployment.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mcp.fullname" . }}
+  labels:
+    {{- include "mcp.labels" . | nindent 4 }}
+  annotations:
+    {{- include "mcp.annotations" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "mcp.selectorLabels" . | nindent 6 }}
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "mcp.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: "{{ .Values.serviceAccount.name }}"
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+          - name: http
+            containerPort: {{ .Values.applicationPort }}
+            protocol: TCP
+        env:
+          - name: ITENTIAL_MCP_SERVER_TRANSPORT
+            value: {{ .Values.mcp.server.transport | quote }}
+          - name: ITENTIAL_MCP_SERVER_HOST
+            value: {{ .Values.mcp.server.host | quote }}
+          - name: ITENTIAL_MCP_SERVER_PORT
+            value: {{ .Values.mcp.server.port | quote }}
+          - name: ITENTIAL_MCP_SERVER_PATH
+            value: {{ .Values.mcp.server.path | quote }}
+          - name: ITENTIAL_MCP_PLATFORM_HOST
+            value: {{ .Values.mcp.platform.host | quote }}
+          - name: ITENTIAL_MCP_PLATFORM_PORT
+            value: {{ .Values.mcp.platform.port | quote }}
+          - name: ITENTIAL_MCP_PLATFORM_DISABLE_TLS
+            value: {{ .Values.mcp.platform.disableTls | quote }}
+          - name: ITENTIAL_MCP_PLATFORM_DISABLE_VERIFY
+            value: {{ .Values.mcp.platform.disableVerify | quote }}
+          - name: ITENTIAL_MCP_PLATFORM_TIMEOUT
+            value: {{ .Values.mcp.platform.timeout | quote }}
+          {{- if .Values.mcp.platform.includeTags }}
+          - name: ITENTIAL_MCP_INCLUDE_TAGS
+            value: {{ .Values.mcp.platform.includeTags | quote }}
+          {{- end }}
+          {{- if .Values.mcp.platform.excludeTags }}
+          - name: ITENTIAL_MCP_EXCLUDE_TAGS
+            value: {{ .Values.mcp.platform.excludeTags | quote }}
+          {{- end }}
+        envFrom:
+          - secretRef:
+              name: {{ include "mcp.credentialsSecretName" . }}
+              optional: true
+        {{- if .Values.startupProbe.enabled }}
+        startupProbe:
+          failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          httpGet:
+            path: {{ .Values.startupProbe.path }}
+            port: {{ .Values.applicationPort }}
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+          successThreshold: {{ .Values.startupProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+        {{- end }}
+        {{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          httpGet:
+            path: {{ .Values.livenessProbe.path }}
+            port: {{ .Values.applicationPort }}
+            scheme: HTTP
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          httpGet:
+            path: {{ .Values.readinessProbe.path }}
+            port: {{ .Values.applicationPort }}
+            scheme: HTTP
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+        {{- end }}
+        {{- if .Values.resourcesEnabled }}
+        resources: {{- toYaml .Values.resources | nindent 10 }}
+        {{- end }}
+        {{- with .Values.volumeMounts }}
+        volumeMounts:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+{{- end }}
