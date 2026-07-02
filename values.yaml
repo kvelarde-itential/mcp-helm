@@ -6,7 +6,7 @@
 replicaCount: 1
 
 # applicationPort The port the MCP server container listens on inside the pod.
-# Must match mcp.server.port.
+# Must match env.ITENTIAL_MCP_SERVER_PORT.
 applicationPort: 8000
 
 # image The Itential MCP image to use, its version, and its location
@@ -104,35 +104,35 @@ startupProbe:
   successThreshold: 1
   path: "/mcp"
 
-# mcp Server and platform connection configuration. These values are rendered into
-# environment variables that the MCP server reads at startup.
-mcp:
-  server:
-    # transport Must be "sse" or "http" for Kubernetes deployments. Do not use "stdio".
-    transport: "sse"
-    # host The address the MCP server binds to inside the container.
-    host: "0.0.0.0"
-    # port The port the MCP server listens on. Must match applicationPort.
-    port: 8000
-    # path The HTTP path the MCP server mounts on.
-    path: "/mcp"
-  platform:
-    # host The hostname or IP address of the Itential Platform instance.
-    host: ""
-    # port The port of the Itential Platform instance. Set to 0 for auto-detection.
-    port: 3000
-    # disableTls Set to true to disable TLS entirely (connects via HTTP). Only use if IAP is not
-    # running TLS. For self-signed or internal CA certs, use disableVerify instead.
-    disableTls: false
-    # disableVerify Set to true to skip TLS certificate verification when connecting to Itential
-    # Platform. Use this when IAP uses a self-signed or internal CA certificate.
-    disableVerify: false
-    # timeout Connection timeout in seconds.
-    timeout: 30
-    # includeTags Comma-separated list of tool tag groups to expose. Leave empty to expose all.
-    includeTags: ""
-    # excludeTags Comma-separated list of tool tag groups to hide.
-    excludeTags: ""
+# env Non-sensitive environment variables passed to the MCP container. Keys must be valid
+# ITENTIAL_MCP_* environment variable names. See the full list at:
+# https://github.com/itential/itential-mcp/blob/devel/src/itential_mcp/config/models.py
+env:
+  # ITENTIAL_MCP_SERVER_TRANSPORT Must be "sse" or "http" for Kubernetes deployments. Do not use "stdio".
+  ITENTIAL_MCP_SERVER_TRANSPORT: "sse"
+  # ITENTIAL_MCP_SERVER_HOST The address the MCP server binds to inside the container.
+  ITENTIAL_MCP_SERVER_HOST: "0.0.0.0"
+  # ITENTIAL_MCP_SERVER_PORT The port the MCP server listens on. Must match applicationPort.
+  ITENTIAL_MCP_SERVER_PORT: "8000"
+  # ITENTIAL_MCP_SERVER_PATH The HTTP path the MCP server mounts on.
+  ITENTIAL_MCP_SERVER_PATH: "/mcp"
+  # ITENTIAL_MCP_PLATFORM_HOST The hostname or IP address of the Itential Platform instance.
+  ITENTIAL_MCP_PLATFORM_HOST: ""
+  # ITENTIAL_MCP_PLATFORM_PORT The port of the Itential Platform instance.
+  ITENTIAL_MCP_PLATFORM_PORT: "3443"
+  # ITENTIAL_MCP_PLATFORM_DISABLE_TLS Set to "true" to disable TLS entirely (connects via HTTP).
+  # Only use if Itential Platform is not running TLS. For self-signed or internal CA certs,
+  # use ITENTIAL_MCP_PLATFORM_DISABLE_VERIFY instead.
+  ITENTIAL_MCP_PLATFORM_DISABLE_TLS: "false"
+  # ITENTIAL_MCP_PLATFORM_DISABLE_VERIFY Set to "true" to skip TLS certificate verification.
+  # Use when Itential Platform uses a self-signed or internal CA certificate.
+  ITENTIAL_MCP_PLATFORM_DISABLE_VERIFY: "false"
+  # ITENTIAL_MCP_PLATFORM_TIMEOUT Connection timeout in seconds.
+  ITENTIAL_MCP_PLATFORM_TIMEOUT: "30"
+  # ITENTIAL_MCP_PLATFORM_TTL Authentication TTL in seconds before forcing reauthentication.
+  # Set to a value shorter than the Itential Platform token lifetime to avoid stale token errors.
+  # 0 disables forced reauthentication.
+  ITENTIAL_MCP_PLATFORM_TTL: "0"
 
 # credentials Platform authentication credentials. Sensitive values are stored in a Kubernetes
 # Secret. Supports basic auth (user/password) or OAuth 2.0 (clientId/clientSecret).

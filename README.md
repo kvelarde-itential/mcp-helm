@@ -21,7 +21,7 @@ them but the MCP server will be unable to connect to Itential Platform.
 
 | Value | Description |
 |:------|:------------|
-| `mcp.platform.host` | Hostname or IP address of the Itential Platform instance the MCP server will connect to. |
+| `env.ITENTIAL_MCP_PLATFORM_HOST` | Hostname or IP address of the Itential Platform instance the MCP server will connect to. |
 | `credentials.platformUser` | Username for basic auth against Itential Platform. Set this or the OAuth2 credentials below. |
 | `credentials.platformPassword` | Password for basic auth against Itential Platform. |
 | `credentials.platformClientId` | OAuth 2.0 client ID. Use instead of basic auth credentials if your platform uses OAuth 2.0. |
@@ -50,7 +50,7 @@ Install with platform credentials passed directly on the command line:
 
 ```bash
 helm install mcp . -f values.yaml \
-  --set mcp.platform.host=iap.example.com \
+  --set env.ITENTIAL_MCP_PLATFORM_HOST=iap.example.com \
   --set credentials.platformUser=admin \
   --set credentials.platformPassword=supersecret
 ```
@@ -59,7 +59,7 @@ Install referencing an existing credentials Secret:
 
 ```bash
 helm install mcp . -f values.yaml \
-  --set mcp.platform.host=iap.example.com \
+  --set env.ITENTIAL_MCP_PLATFORM_HOST=iap.example.com \
   --set credentials.secretName=my-mcp-credentials
 ```
 
@@ -114,21 +114,27 @@ Kubernetes deployments. The default is `sse`.
 | `http` | Stateless HTTP. Use for service mesh deployments. |
 | `stdio` | Standard I/O. Local CLI use only — do not use in Kubernetes. |
 
+Set the transport mode via the `env` map:
+
+```yaml
+env:
+  ITENTIAL_MCP_SERVER_TRANSPORT: "http"
+```
+
 ### TLS and Certificate Verification
 
 The MCP server connects to Itential Platform over HTTPS by default. If IAP is using a
-self-signed certificate or an internal CA, set `mcp.platform.disableVerify: true` to skip
-certificate verification while keeping the connection encrypted.
+self-signed certificate or an internal CA, set `ITENTIAL_MCP_PLATFORM_DISABLE_VERIFY` to
+`"true"` to skip certificate verification while keeping the connection encrypted.
 
 ```yaml
-mcp:
-  platform:
-    disableVerify: true
+env:
+  ITENTIAL_MCP_PLATFORM_DISABLE_VERIFY: "true"
 ```
 
-Do **not** use `mcp.platform.disableTls: true` unless IAP is genuinely running without TLS.
-That setting disables TLS entirely and switches the client to HTTP, which will fail if IAP is
-listening on an HTTPS port.
+Do **not** set `ITENTIAL_MCP_PLATFORM_DISABLE_TLS` to `"true"` unless IAP is genuinely running
+without TLS. That setting disables TLS entirely and switches the client to HTTP, which will fail
+if IAP is listening on an HTTPS port.
 
 ### Integrating with Claude Desktop
 
@@ -246,12 +252,19 @@ tools.
 ### Tool Filtering
 
 The MCP server exposes 56+ tools by default. You can reduce the exposed surface using the
-`mcp.platform.includeTags` and `mcp.platform.excludeTags` values. These accept a
-comma-separated list of tool group tags.
+`ITENTIAL_MCP_SERVER_INCLUDE_TAGS` and `ITENTIAL_MCP_SERVER_EXCLUDE_TAGS` environment
+variables. These accept a comma-separated list of tool group tags.
+
+```yaml
+env:
+  ITENTIAL_MCP_SERVER_INCLUDE_TAGS: "health,configuration_manager"
+```
+
+Or via `--set` on the command line:
 
 ```bash
 helm install mcp . -f values.yaml \
-  --set mcp.platform.includeTags="health,configuration_manager"
+  --set 'env.ITENTIAL_MCP_SERVER_INCLUDE_TAGS=health,configuration_manager'
 ```
 
 ## Values
@@ -259,13 +272,26 @@ helm install mcp . -f values.yaml \
 | Key | Type | Default | Description |
 |:----|:-----|:--------|:------------|
 | affinity | object | `{}` | Additional affinities |
-| applicationPort | int | `8000` | The port the MCP server container listens on inside the pod. Must match `mcp.server.port`. |
+| applicationPort | int | `8000` | The port the MCP server container listens on inside the pod. Must match `env.ITENTIAL_MCP_SERVER_PORT`. |
 | credentials.secretName | string | `""` | Name of an existing Secret to use for platform credentials. When set, no Secret is created by the chart. |
 | credentials.platformUser | string | `""` | Basic auth username for Itential Platform. Only used when `credentials.secretName` is empty. |
 | credentials.platformPassword | string | `""` | Basic auth password for Itential Platform. Only used when `credentials.secretName` is empty. |
 | credentials.platformClientId | string | `""` | OAuth 2.0 client ID. Only used when `credentials.secretName` is empty. |
 | credentials.platformClientSecret | string | `""` | OAuth 2.0 client secret. Only used when `credentials.secretName` is empty. |
 | deployment.enabled | bool | `true` | Toggle creation of the Deployment object. |
+| env | map | See `values.yaml` | Non-sensitive environment variables passed to the MCP container. Keys must be valid `ITENTIAL_MCP_*` environment variable names. See [models.py](https://github.com/itential/itential-mcp/blob/devel/src/itential_mcp/config/models.py) for the full list. |
+| env.ITENTIAL_MCP_PLATFORM_DISABLE_TLS | string | `"false"` | Disable TLS entirely for the platform connection (connects via HTTP). Only use if Itential Platform is not running TLS. For internal CA certs, use `ITENTIAL_MCP_PLATFORM_DISABLE_VERIFY` instead. |
+| env.ITENTIAL_MCP_PLATFORM_DISABLE_VERIFY | string | `"false"` | Skip TLS certificate verification when connecting to Itential Platform. Use when Itential Platform uses a self-signed or internal CA cert. |
+| env.ITENTIAL_MCP_PLATFORM_HOST | string | `""` | Hostname or IP address of the Itential Platform instance. |
+| env.ITENTIAL_MCP_PLATFORM_PORT | string | `"3443"` | Port of the Itential Platform instance. |
+| env.ITENTIAL_MCP_PLATFORM_TIMEOUT | string | `"30"` | Connection timeout in seconds. |
+| env.ITENTIAL_MCP_PLATFORM_TTL | string | `"0"` | Authentication TTL in seconds before forcing reauthentication. Set to a value shorter than the Itential Platform token lifetime to avoid stale token errors. `0` disables forced reauthentication. |
+| env.ITENTIAL_MCP_SERVER_HOST | string | `"0.0.0.0"` | The address the MCP server binds to inside the container. |
+| env.ITENTIAL_MCP_SERVER_INCLUDE_TAGS | string | not set | Comma-separated list of tool tag groups to expose. Leave unset to expose all tools. |
+| env.ITENTIAL_MCP_SERVER_EXCLUDE_TAGS | string | not set | Comma-separated list of tool tag groups to hide. |
+| env.ITENTIAL_MCP_SERVER_PATH | string | `"/mcp"` | The HTTP path the MCP server mounts on. |
+| env.ITENTIAL_MCP_SERVER_PORT | string | `"8000"` | The port the MCP server listens on. Must match `applicationPort`. |
+| env.ITENTIAL_MCP_SERVER_TRANSPORT | string | `"sse"` | Transport mode. Use `sse` or `http` for Kubernetes. |
 | image.pullPolicy | string | `"IfNotPresent"` | The image pull policy. |
 | image.repository | string | `"ghcr.io/itential/itential-mcp"` | The image repository. |
 | image.tag | string | `""` | The image tag. Defaults to the chart `appVersion` when empty. |
@@ -282,17 +308,6 @@ helm install mcp . -f values.yaml \
 | livenessProbe.periodSeconds | int | `30` | How often to run the probe. |
 | livenessProbe.successThreshold | int | `1` | Minimum consecutive successes to be considered healthy. |
 | livenessProbe.timeoutSeconds | int | `5` | Seconds after which the probe times out. |
-| mcp.platform.disableTls | bool | `false` | Disable TLS entirely for the platform connection (connects via HTTP). Only use if IAP is not running TLS. For internal CA certs, use `disableVerify` instead. |
-| mcp.platform.disableVerify | bool | `false` | Skip TLS certificate verification when connecting to Itential Platform. Use when IAP uses a self-signed or internal CA cert. |
-| mcp.platform.excludeTags | string | `""` | Comma-separated list of tool tag groups to hide. |
-| mcp.platform.host | string | `""` | Hostname or IP address of the Itential Platform instance. |
-| mcp.platform.includeTags | string | `""` | Comma-separated list of tool tag groups to expose. Leave empty to expose all. |
-| mcp.platform.port | int | `3000` | Port of the Itential Platform instance. Set to `0` for auto-detection. |
-| mcp.platform.timeout | int | `30` | Connection timeout in seconds. |
-| mcp.server.host | string | `"0.0.0.0"` | The address the MCP server binds to inside the container. |
-| mcp.server.path | string | `"/mcp"` | The HTTP path the MCP server mounts on. |
-| mcp.server.port | int | `8000` | The port the MCP server listens on. Must match `applicationPort`. |
-| mcp.server.transport | string | `"sse"` | Transport mode. Use `sse` or `http` for Kubernetes. |
 | nodeSelector | object | `{"itential.io/app":"mcp"}` | Node selector labels. |
 | podAnnotations | object | `{}` | Additional pod annotations. |
 | podLabels | object | `{}` | Additional pod labels. |

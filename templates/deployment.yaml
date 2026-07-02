@@ -43,31 +43,9 @@ spec:
             containerPort: {{ .Values.applicationPort }}
             protocol: TCP
         env:
-          - name: ITENTIAL_MCP_SERVER_TRANSPORT
-            value: {{ .Values.mcp.server.transport | quote }}
-          - name: ITENTIAL_MCP_SERVER_HOST
-            value: {{ .Values.mcp.server.host | quote }}
-          - name: ITENTIAL_MCP_SERVER_PORT
-            value: {{ .Values.mcp.server.port | quote }}
-          - name: ITENTIAL_MCP_SERVER_PATH
-            value: {{ .Values.mcp.server.path | quote }}
-          - name: ITENTIAL_MCP_PLATFORM_HOST
-            value: {{ .Values.mcp.platform.host | quote }}
-          - name: ITENTIAL_MCP_PLATFORM_PORT
-            value: {{ .Values.mcp.platform.port | quote }}
-          - name: ITENTIAL_MCP_PLATFORM_DISABLE_TLS
-            value: {{ .Values.mcp.platform.disableTls | quote }}
-          - name: ITENTIAL_MCP_PLATFORM_DISABLE_VERIFY
-            value: {{ .Values.mcp.platform.disableVerify | quote }}
-          - name: ITENTIAL_MCP_PLATFORM_TIMEOUT
-            value: {{ .Values.mcp.platform.timeout | quote }}
-          {{- if .Values.mcp.platform.includeTags }}
-          - name: ITENTIAL_MCP_INCLUDE_TAGS
-            value: {{ .Values.mcp.platform.includeTags | quote }}
-          {{- end }}
-          {{- if .Values.mcp.platform.excludeTags }}
-          - name: ITENTIAL_MCP_EXCLUDE_TAGS
-            value: {{ .Values.mcp.platform.excludeTags | quote }}
+          {{- range $key, $value := .Values.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
           {{- end }}
         envFrom:
           - secretRef:
