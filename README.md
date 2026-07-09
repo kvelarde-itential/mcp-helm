@@ -3,6 +3,21 @@
 This repo contains a Helm chart for running the Itential MCP server in Kubernetes. Requires
 Helm version `v3.15.0`.
 
+## Table of Contents
+
+- [Itential MCP](#itential-mcp)
+  - [Before You Deploy](#before-you-deploy)
+  - [Usage](#usage)
+  - [Requirements & Dependencies](#requirements--dependencies)
+    - [Secrets](#secrets)
+    - [imagePullSecrets](#imagepullsecrets)
+  - [Transport Mode](#transport-mode)
+  - [TLS and Certificate Verification](#tls-and-certificate-verification)
+  - [Integrating with Claude Desktop](#integrating-with-claude-desktop)
+  - [Integrating with Claude Code](#integrating-with-claude-code)
+  - [Tool Filtering](#tool-filtering)
+- [Values](#values)
+
 ## Itential MCP
 
 The Itential MCP server is a [Model Context Protocol](https://modelcontextprotocol.io/) server
@@ -274,8 +289,8 @@ helm install mcp . -f values.yaml \
 | affinity | object | `{}` | Additional affinities |
 | applicationPort | int | `8000` | The port the MCP server container listens on inside the pod. Must match `env.ITENTIAL_MCP_SERVER_PORT`. |
 | credentials.secretName | string | `""` | Name of an existing Secret to use for platform credentials. When set, no Secret is created by the chart. |
-| credentials.platformUser | string | `""` | Basic auth username for Itential Platform. Only used when `credentials.secretName` is empty. |
-| credentials.platformPassword | string | `""` | Basic auth password for Itential Platform. Only used when `credentials.secretName` is empty. |
+| credentials.platformUser | string | `"admin"` | Basic auth username for Itential Platform. Only used when `credentials.secretName` is empty. |
+| credentials.platformPassword | string | `"admin"` | Basic auth password for Itential Platform. Only used when `credentials.secretName` is empty. |
 | credentials.platformClientId | string | `""` | OAuth 2.0 client ID. Only used when `credentials.secretName` is empty. |
 | credentials.platformClientSecret | string | `""` | OAuth 2.0 client secret. Only used when `credentials.secretName` is empty. |
 | deployment.enabled | bool | `true` | Toggle creation of the Deployment object. |
@@ -304,7 +319,7 @@ helm install mcp . -f values.yaml \
 | ingress.tls | list | `[]` | TLS configuration for the Ingress. |
 | livenessProbe.enabled | bool | `false` | Toggle the liveness probe. |
 | livenessProbe.failureThreshold | int | `3` | Number of failures before the pod is killed. |
-| livenessProbe.path | string | `"/mcp"` | HTTP path for the liveness probe. |
+| livenessProbe.path | string | `"/status/livez"` | HTTP path for the liveness probe. |
 | livenessProbe.periodSeconds | int | `30` | How often to run the probe. |
 | livenessProbe.successThreshold | int | `1` | Minimum consecutive successes to be considered healthy. |
 | livenessProbe.timeoutSeconds | int | `5` | Seconds after which the probe times out. |
@@ -314,7 +329,7 @@ helm install mcp . -f values.yaml \
 | podSecurityContext | object | `{}` | Pod-level security context. |
 | readinessProbe.enabled | bool | `false` | Toggle the readiness probe. |
 | readinessProbe.failureThreshold | int | `3` | Number of failures before the pod is marked not ready. |
-| readinessProbe.path | string | `"/mcp"` | HTTP path for the readiness probe. |
+| readinessProbe.path | string | `"/status/readyz"` | HTTP path for the readiness probe. |
 | readinessProbe.periodSeconds | int | `10` | How often to run the probe. |
 | readinessProbe.successThreshold | int | `1` | Minimum consecutive successes to be considered ready. |
 | readinessProbe.timeoutSeconds | int | `5` | Seconds after which the probe times out. |
@@ -332,7 +347,7 @@ helm install mcp . -f values.yaml \
 | startupProbe.enabled | bool | `false` | Toggle the startup probe. |
 | startupProbe.failureThreshold | int | `18` | Number of failures before the pod is killed during startup. |
 | startupProbe.initialDelaySeconds | int | `10` | Seconds before the startup probe begins. |
-| startupProbe.path | string | `"/mcp"` | HTTP path for the startup probe. |
+| startupProbe.path | string | `"/status/livez"` | HTTP path for the startup probe. |
 | startupProbe.periodSeconds | int | `10` | How often to run the probe during startup. |
 | startupProbe.successThreshold | int | `1` | Minimum consecutive successes to pass startup. |
 | startupProbe.timeoutSeconds | int | `5` | Seconds after which the startup probe times out. |

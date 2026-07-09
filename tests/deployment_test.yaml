@@ -207,19 +207,15 @@ tests:
         pullPolicy: IfNotPresent
       podSecurityContext: {}
       securityContext: {}
-      mcp:
-        server:
-          transport: sse
-          host: "0.0.0.0"
-          port: 8000
-          path: "/mcp"
-        platform:
-          host: "iap.example.com"
-          port: 3000
-          disableTls: false
-          timeout: 30
-          includeTags: ""
-          excludeTags: ""
+      env:
+        ITENTIAL_MCP_SERVER_TRANSPORT: "sse"
+        ITENTIAL_MCP_SERVER_HOST: "0.0.0.0"
+        ITENTIAL_MCP_SERVER_PORT: "8000"
+        ITENTIAL_MCP_SERVER_PATH: "/mcp"
+        ITENTIAL_MCP_PLATFORM_HOST: "iap.example.com"
+        ITENTIAL_MCP_PLATFORM_PORT: "3000"
+        ITENTIAL_MCP_PLATFORM_DISABLE_TLS: "false"
+        ITENTIAL_MCP_PLATFORM_TIMEOUT: "30"
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
